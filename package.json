@@ -1,0 +1,19 @@
+{
+  "name": "breaking-apps-hackathon-submission",
+  "version": "1.0.0",
+  "description": "Submission for Breaking Apps Hackathon",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.43.0",
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "passmark": "latest"
+  }
+}
