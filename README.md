@@ -88,15 +88,15 @@ npx playwright show-report
 - [x] ⭐ Starred and forked [bug0inc/passmark](https://github.com/bug0inc/passmark)
 - [x] 🧪 Passmark test suite written for 5 web apps
 - [x] 📁 Code pushed to GitHub
-- [ ] ✍️ Hashnode article published with `#BreakingAppsHackathon`
-- [ ] 📢 Shared on X/LinkedIn, tagged @bug0inc
-- [ ] 🚀 Article submitted on hackathon page before May 10, 11:59 PM PT
+- [x] ✍️ Hashnode article published with `#BreakingAppsHackathon`
+- [x] 📢 Shared on X/LinkedIn, tagged @bug0inc
+- [x] 🚀 Article submitted on hackathon page before May 10, 11:59 PM PT
 
 ---
 
 ## 📖 Hashnode Article
 
-> *Coming soon — link will be added here after publication*
+> *(https://lohit-dev.hashnode.dev/i-built-25-ai-tests-to-break-the-internet-and-what-it-taught-me-about-passmark)*
 
 ---
 
