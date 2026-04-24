@@ -4,8 +4,8 @@ import { runSteps } from "passmark";
 test.describe("🤖 AI Wars — Using Passmark AI to Test Another AI Chatbot", () => {
   // We use huggingface.co/chat because it does not strictly require login and is accessible headless
   test("✅ AI successfully converses with another AI model", async ({ page }) => {
-    // Increase timeout since AI generation takes time
-    test.setTimeout(240_000);
+    // Increase timeout to 10 minutes since external AI generation takes significant time
+    test.setTimeout(600_000);
 
     await runSteps({
       page,

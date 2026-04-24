@@ -124,4 +124,28 @@ test.describe("🛒 Vercel Commerce — Breaking the Perfect E-Commerce Demo", (
     });
   });
 
+  test("⚙️ Hybrid Test Strategy — Fast Playwright Navigation + Passmark AI Assertions", async ({ page }) => {
+    test.setTimeout(180_000);
+
+    // 1. Traditional Playwright for fast, deterministic navigation
+    await page.goto("https://demo.vercel.store");
+    await page.waitForLoadState("domcontentloaded");
+    
+    // 2. Passmark AI for complex visual/mathematical assertions
+    await runSteps({
+      page,
+      userFlow: "Verify cart mathematical consistency without selectors",
+      steps: [
+        { description: "Click on any product" },
+        { description: "Add it to the cart" }
+      ],
+      assertions: [
+        { assertion: "The total order value mathematically equals the item price multiplied by quantity plus any visible taxes" },
+        { assertion: "The item price is a range-bounded value between $5 and $500" }
+      ],
+      test,
+      expect,
+    });
+  });
+
 });

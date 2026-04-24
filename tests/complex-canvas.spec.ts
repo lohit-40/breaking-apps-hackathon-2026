@@ -16,6 +16,7 @@ test.describe("🎨 Canvas Crusher — Testing Non-DOM Interactive Web Apps", ()
         { description: "Click somewhat randomly in the middle of the main screen to place a text box" },
         { description: "Type the word 'Passmark Canvas Test'", data: { value: "Passmark Canvas Test" } },
       ],
+      effort: "high",
       assertions: [
         { assertion: "The toolbar contains recognizable drawing tools (like pen, rectangle, text)" },
         { assertion: "The text 'Passmark Canvas Test' was successfully placed and is visible on the screen" },
