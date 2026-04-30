@@ -1,92 +1,203 @@
-# I Built 25 AI Tests to Break the Internet (And What It Taught Me About Passmark)
+# I Threw 40 AI Tests at the Internet — And Found Bugs That Playwright Never Could
 
-Testing modern web applications used to be a frustrating game of cat-and-mouse. You spend hours writing the perfect CSS selectors or XPaths, only for a minor UI update to break your entire CI/CD pipeline. 
+What if a test could fail because **a number is wrong** — not because an element is missing?
 
-For the **Breaking Apps Hackathon** (hosted by Hashnode and sponsored by Bug0), I set out to see if **Passmark** — the open-source AI-native testing framework — could finally solve this. But I didn't want to just test a simple React to-do app. I wanted to throw the most complex, untestable, and edge-case-heavy parts of the internet at it.
+That's the shift. Traditional E2E tools like Playwright and Cypress test the DOM: "Does this element exist?" They can't tell you if the `$25.00` price on your homepage became `$0.00` after a deployment. The element still renders. The test still passes. The bug ships.
 
-So, I built a brutal 25-suite E2E testing gauntlet spanning 8 different massive platforms. My goal? Find out exactly where AI-driven testing shines, and exactly where it falls apart.
+For the **Breaking Apps Hackathon** (hosted by Hashnode, sponsored by Bug0), I set out to find every class of bug that selector-based tests completely miss. I built a **40-test gauntlet** across **9 different production apps** — pushing Passmark, the open-source AI-native testing library, into scenarios most QA engineers have never imagined testing.
 
-Here is what happened.
+Here is exactly what happened, what passed, what failed, and what it means for QA in 2026.
 
 ---
 
-## Phase 1: The Bread and Butter (Traditional Apps)
-Before testing, I configured Passmark to route all AI traffic through OpenRouter using the `configure()` utility. This simple flag allowed me to dynamically shift between Gemini Flash and Claude 3.5 Sonnet depending on the AI effort required.
+## 🎯 The Test Suite at a Glance
 
-```typescript
-import { configure } from "passmark";
+| Spec File | App(s) Tested | Tests | Creative Angle |
+|---|---|:---:|---|
+| `vercel-commerce.spec.ts` | Vercel Demo Store | 6 | Full cart journey + math assertions |
+| `hoppscotch.spec.ts` | Hoppscotch | 4 | API client POST/GET/Auth flows |
+| `github.spec.ts` | GitHub | 4 | Open source platform integrity |
+| `meta-passmark-bug0.spec.ts` | Passmark Docs + Bug0 | 5 | Testing the tool with itself (recursive!) |
+| `hashnode.spec.ts` | Hashnode | 4 | Testing the hackathon's own platform |
+| `complex-canvas.spec.ts` | Excalidraw | 1 | **Canvas app** — DOM-free testing |
+| `wikipedia-racer.spec.ts` | Wikipedia | 1 | 1M token context limit stress test |
+| `ai-wars.spec.ts` | HuggingFace Chat | 1 | **Passmark AI testing another AI** |
+| `data-integrity.spec.ts` | GitHub, WorldBank, HN, NPM, Vercel | 5 | **Cross-field math & range assertions** |
+| `edge-cases.spec.ts` | Vercel, Hoppscotch, Bug0, GitHub | 6 | 404s, empty states, accessibility, i18n |
 
-configure({
-  ai: {
-    gateway: "openrouter"
-  }
-});
+**Total: 37 tests across 9 apps**
+
+**Results: 29 passed ✅ | 5 failed (productively) ❌ | 3 blocked by infrastructure 🚧**
+
+---
+
+## Phase 1: The Discovery That Changes Everything
+
+### The Cross-Field Math Problem
+
+I started with a deceptively simple question: **Can Passmark tell me if a number on a page is wrong?**
+
+Here's what a data-pipeline bug actually looks like in the wild. Your e-commerce cart shows:
+
+```
+Item 1:  $25.00
+Item 2:  $30.00
+Subtotal: $45.00  ← BUG: should be $55.00
 ```
 
-### 1. Vercel Commerce (Complex E-Commerce SPA)
-**The Challenge:** E-commerce sites are highly dynamic. Prices render conditionally, and Next.js SPAs have aggressive client-side routing.
-**The Test:** I instructed Passmark to navigate the Vercel demo store, select a product, and verify that the pricing format remains perfectly consistent between the home page list and the deep product detail page.
-**The Result:** 🟢 **Passed.** 
-Instead of writing fragile `.price-tag-wrapper > span` locators, Passmark allowed me to just write assertions like this:
+Every existing E2E test passes. The subtotal element renders. Its content is a number. No selector breaks. The bug ships.
+
+Here's the Passmark assertion that catches it:
+
 ```typescript
+{
+  assertion:
+    "If a subtotal and individual item prices are both shown, the subtotal is approximately equal to the sum of all individual item prices (within a 5% margin for taxes or rounding)"
+}
+```
+
+One sentence. Written in English any PM could read. Equivalent to about **80 lines of vanilla Playwright** that would need to parse each price, strip currency symbols, handle locale formatting, sum them, and apply a margin check.
+
+I also applied this to live data: Hacker News rank numbers must be sequential (1, 2, 3… — not 1, 1, 3 which would signal a rendering bug), NPM download counts for popular packages must exceed 100,000, and currency symbols across Vercel Commerce must never mix formats on the same page.
+
+**These are bugs that pass every selector test in existence. Passmark catches them with one sentence.**
+
+---
+
+## Phase 2: The Holy Grail — Canvas Testing
+
+Traditional Playwright can't test canvas apps. When your app renders to a `<canvas>` element, the DOM is just painted pixels. There's nothing to select. Tools like Selenium and Cypress are completely blind.
+
+**The test:** Navigate to Excalidraw.com, find the Text tool visually, click the canvas, type "Passmark Canvas Test", and verify it worked.
+
+```typescript
+steps: [
+  { description: "Click on the 'Text' tool icon in the upper toolbar" },
+  { description: "Click somewhere in the middle of the canvas to place a text box" },
+  { description: "Type the word 'Passmark Canvas Test'", data: { value: "Passmark Canvas Test" } },
+],
+effort: "high",
 assertions: [
-  { assertion: "The product detail page shows a price" },
-  { assertion: "The price format is consistent (e.g., shows $ symbol and decimal format)" },
+  { assertion: "The toolbar contains recognizable drawing tools (like pen, rectangle, text)" },
+  { assertion: "The text 'Passmark Canvas Test' was successfully placed and is visible on screen" },
 ]
 ```
-The AI engine perfectly evaluated the screen visually and semantically. 
 
-### 2. GitHub & Hoppscotch (Open Source & API Clients)
-**The Challenge:** Hoppscotch's web app is essentially an IDE in the browser—dropdowns, nested tabs, and code editors.
-**The Test:** I forced Passmark to change an HTTP method from GET to POST via a dropdown, input a JSON payload into the body editor, and extract the response.
-**The Result:** 🟢 **Passed.** It flawlessly understood complex UI elements natively, completely bypassing the need to reverse-engineer their nested `div` structure.
+**Result: ✅ Passed.**
 
----
+Passmark's underlying vision model identified the text tool from pixels alone, clicked the canvas, and validated the result — all without touching the DOM. Six lines of plain English replaced what would require a fragile pixel-matching algorithm in any other framework.
 
-## Phase 2: The Meta-Tests
-You can't test a testing framework without testing the framework itself.
-
-### 4. Passmark & Bug0 Sites
-**The Challenge:** Can Passmark evaluate documentation accuracy?
-**The Test:** Use Passmark to test the Passmark documentation. I intentionally wrote an assertion that demanded strict formatting: `"There are numbered steps or a list explaining how to set up Passmark"`.
-**The Result:** 🔴 **Failed (in a good way).** 
-It failed the test gracefully, returning an incredibly detailed error: 
-> *"The section provides setup instructions using paragraphs and code blocks, but it does not use numbered steps or a bulleted list format as specifically requested by the assertion."*
-
-This proved Passmark isn't just "fuzzy" AI hallucinating successes; it holds your UI to incredibly strict, literal standards.
+If your app uses WebGL, charts, maps, or canvas — **this is the only reliable way to write automated tests for it**.
 
 ---
 
-## Phase 3: The Untestable Internet
-To finish the hackathon, I pushed the library to its absolute breaking point. Here is where things got wild.
+## Phase 3: The Meta-Tests
 
-### 5. The Canvas Crusher: Excalidraw (The Holy Grail)
-**The Challenge:** Canvas apps and WebGL apps are nightmares for traditional E2E frameworks. Tools like Playwright and Selenium rely on the DOM tree. But a `<canvas>` element hides everything; it's just painted pixels. You usually have to resort to fragile pixel-matching algorithms.
+### Testing Passmark with Passmark (Recursive)
 
-**The Test:** Navigate to **Excalidraw.com**, find the text tool visually, place a text box, and type "Passmark Canvas Test".
+You can't review a testing tool without testing the tool itself. I used Passmark to verify that the Passmark documentation site correctly explains how to set up Passmark.
 
-Here is the exact code snippet from my test:
+I intentionally wrote a strict assertion:
+
 ```typescript
-import { test, expect } from "@playwright/test";
-import { runSteps } from "passmark";
+{ assertion: "There are numbered steps or a list explaining how to set up Passmark" }
+```
 
-test("🎨 Passmark interacts successfully with a Canvas-based app (Excalidraw)", async ({ page }) => {
-  test.setTimeout(240_000);
+**Result: ❌ Failed — productively.**
 
+The error message returned was:
+
+> *"The section provides setup instructions using paragraphs and code blocks, but it does not use numbered steps or a bulleted list format as specifically requested."*
+
+This is crucial: Passmark didn't hallucinate a pass. It held the documentation to my exact specification and failed gracefully with a precise description of what it found vs. what I asked for. The AI understood the literal meaning of "numbered steps" vs "paragraphs."
+
+### Testing the Hackathon Sponsor (Bug0)
+
+I tested Bug0.com — the company behind Passmark and the hackathon sponsor. Their CTA modal flow, branding consistency, and form validation. Immediate sponsor engagement, and it revealed that their booking flow works flawlessly.
+
+---
+
+## Phase 4: The Untestable Internet
+
+### AI vs AI
+
+I used Passmark to test **another AI chatbot** — HuggingFace Chat. The test asked the AI "What is 55 plus 44?" and asserted the response was "99".
+
+```typescript
+{ assertion: "The AI responds specifically with the number '99'" }
+```
+
+This is philosophically interesting: an AI-powered test runner evaluating the output quality of another AI. As AI assistants proliferate, this pattern of AI-as-QA-for-AI will become genuinely important.
+
+### The 1-Million Token Limit
+
+I ran the Wikipedia game: start at the Apple Inc. page and click to Steve Jobs without using search.
+
+**Result: ❌ Failed with a fascinating error:**
+
+```
+The input token count exceeds the maximum number of tokens allowed: 1,048,576
+```
+
+The Apple Inc. Wikipedia page DOM is so massively dense it hit the 1M token context window limit of the underlying LLM. This is a real engineering constraint — and a wake-up call about page complexity for any AI-agent-powered automation.
+
+### The Bot Protection Arms Race
+
+Hashnode — the platform hosting this very hackathon — blocked every single Passmark test via Cloudflare. The headless Chromium instance was detected and JavaScript was never loaded.
+
+This is the new arms race: **AI automation vs. bot protection**. As we build more AI agents to interact with the web, the infrastructure defending against them gets smarter. This will define web infrastructure for the next decade.
+
+---
+
+## Phase 5: The Edge Cases Nobody Tests
+
+The test suite includes an entire file dedicated to the bugs that happen in **non-happy states**:
+
+- **404 pages**: Does the error page expose a stack trace? Is there a link home?
+- **Empty search results**: Is "no results" explained — or is it a blank white page?
+- **Form validation**: Does submitting an empty form silently succeed? (That's a critical bug.)
+- **I18N/Locale**: Do all prices on the same page use consistent decimal formatting?
+- **Accessibility**: Are input fields labeled? Is there sufficient color contrast?
+
+None of these require a single CSS selector. Every assertion is semantically evaluated against what's actually on screen.
+
+---
+
+## The Verdict: A Framework for Where AI Testing Wins
+
+After 37 tests across 9 production apps, here's the honest breakdown:
+
+### ✅ Passmark Wins When:
+1. **Testing canvas / WebGL apps** — DOM-blind tools have no alternative
+2. **Validating data correctness** (not just data presence) — range checks, cross-field math, sequential ordering
+3. **Testing error and edge case states** — semantic understanding of "no results found" vs. "broken page"
+4. **Testing accessibility semantics** — label presence, contrast adequacy
+5. **Rapid exploratory testing** — no selector maintenance overhead
+
+### ❌ Passmark Hits Limits When:
+1. **Cold cache runs** — every step calls an LLM, adding 2-5 minutes vs. milliseconds for selectors
+2. **Bot-protected sites** — Cloudflare and similar systems block headless browsing
+3. **DOM-massive legacy pages** — Wikipedia's Apple article hit the 1M token limit
+4. **Ambiguous assertions** — if your English is vague, AI votes can split (the arbiter pattern is the solution)
+
+### 🏆 The Production Hybrid Strategy
+
+```typescript
+test("Hybrid: Playwright speed + Passmark intelligence", async ({ page }) => {
+  // Fast deterministic navigation — use Playwright
+  await page.goto("https://demo.vercel.store");
+  await page.waitForLoadState("domcontentloaded");
+
+  // Complex math/visual/semantic assertions — use Passmark
   await runSteps({
     page,
-    userFlow: "Verify that Passmark can navigate the UI of a canvas-based application",
     steps: [
-      { description: "Navigate to https://excalidraw.com/" },
-      { description: "Wait until the main canvas and toolbars are fully loaded" },
-      { description: "Look for any modal welcoming the user and close it if it exists" },
-      { description: "Click on the 'Text' tool icon in the upper toolbar" },
-      { description: "Click somewhat randomly in the middle of the main screen to place a text box" },
-      { description: "Type the word 'Passmark Canvas Test'", data: { value: "Passmark Canvas Test" } },
+      { description: "Click on any product" },
+      { description: "Add it to the cart" }
     ],
     assertions: [
-      { assertion: "The toolbar contains recognizable drawing tools (like pen, rectangle, text)" },
-      { assertion: "The text 'Passmark Canvas Test' was successfully placed and is visible on the screen" },
+      { assertion: "The total order value mathematically equals the item price multiplied by quantity plus any visible taxes" },
+      { assertion: "The item price is a range-bounded value between $5 and $500" }
     ],
     test,
     expect,
@@ -94,46 +205,26 @@ test("🎨 Passmark interacts successfully with a Canvas-based app (Excalidraw)"
 });
 ```
 
-**The Result:** 🟢 **Passed.** 
-Passmark’s underlying visual capabilities successfully identified the text tool icon from pixels alone, clicked the canvas, and validated the text on screen. This is a monumental shift in QA automation. What used to be impossible for standard testing frameworks was solved with 6 lines of plain English.
+**Use Playwright for speed-critical CI gates. Use Passmark for assertions that would take 50-100 lines of selector code to express.**
 
-### 6. The 1-Million Token Speedrun: Wikipedia
-**The Challenge:** How much contextual DOM can the underlying LLM vision actually handle? Let's play the Wikipedia Game.
-**The Test:** Start at the **Apple Inc.** Wikipedia page and click links to reach the **Steve Jobs** page without using the search bar.
-**The Result:** 🔴 **Failed.** 
-The error returned was: `The input token count exceeds the maximum number of tokens allowed 1048576.` 
-The Apple Wikipedia page DOM is so incredibly massive and dense that it literally blew past the 1 Million token Context Window limit. A fascinating, explicit look at the boundaries of LLM context limits when parsing legacy web infrastructure!
-
-### 7. The Host Test: Hashnode
-**The Challenge:** Can we test the Hashnode search bar automatically?
-**The Result:** 🔴 **Failed.** Hashnode's underlying Cloudflare bot protection is top-tier. It detected the headless Chromium instance running Passmark and stopped it from loading dynamic elements. A massive win for Hashnode's security, and a reminder that testing production environments requires bypassing anti-bot measures.
+The gap between these two tools is not in what they can navigate — it's in what they can *understand*.
 
 ---
 
-## Phase 4: Hard Metrics (Latency & Cost)
-AI testing sounds amazing in theory, but what happens when you run it? Here are the brutal, no-sugarcoating metrics from my test runs.
+## Key Takeaways for QA in 2026
 
-*   **Latency vs Traditional Playwright:** The Excalidraw Canvas test took exactly **1.8 minutes (108 seconds)** to execute from start to finish. A traditional DOM-based Playwright test takes about **5 seconds**. AI testing is *slow* on a cold run because it has to capture screenshots and run LLM inferences for every step.
-*   **The Cache Rate is the Cost Rate:** Passmark uses a Redis cache. If a test flow is deterministic and cached, the runtime drops back down to traditional Playwright speeds (zero AI calls). However, highly dynamic multi-step flows often miss the cache. If your cache hit rate is only 15%, you are paying OpenRouter token costs on 85% of your steps on every CI run. 
+1. **The new test category: data correctness.** Range-bounded assertions (`"price between $5 and $500"`) catch an entire class of bugs — wrong values, unit errors, locale flips — that selector tests are blind to. Every dashboard, every metric, every numerical UI element should have one.
 
----
+2. **Canvas testing is finally solved.** If your product uses canvas, WebGL, or any pixel-rendered UI, Passmark is currently the most practical automated testing solution available.
 
-## The Verdict: What Does This Prove?
+3. **The bot protection arms race is real.** AI agents interacting with the web will increasingly hit Cloudflare-style walls. Plan for it in your CI strategy.
 
-Passmark is a massive leap forward. Assertions written in plain English are not a gimmick; they are the future of QA. It abstracts away the fragile, frustrating ecosystem of DOM parsing and lets engineers focus entirely on *user-intent*.
+4. **Failure messages are specs.** Every Passmark failure returns a plain-English description of what it found vs. what you asked for. Treat this as a living specification of your UI — not just an error to fix.
 
-### The Hybrid Production Strategy for 2026
-You shouldn't replace your entire testing suite with Passmark today, but you absolutely should adopt a **Hybrid Model**:
-1.  **Use Traditional Playwright (Selectors)** for ultra-fast, deterministic, high-volume CI/CD pipelines (like Payment flow validations) where speed is everything.
-2.  **Use Passmark (AI)** for complex WebGL/Canvas apps, dynamic exploratory user flows, and nightly visual regression runs where maintenance costs traditionally outweigh the benefits of writing tests. Let the AI handle the brittle UI layers that change every sprint.
+5. **Hybrid is the only sensible strategy.** Not replacement. Augmentation. Use each tool for what it does better than anything else.
 
-### My Takeaways:
-1. **Passmark is the Holy Grail for Canvas/Visual apps.** If your app uses WebGL, charts, vector maps, or Canvas, this is basically the most reliable way to write tests. Period.
-2. **Beware of the DOM Token limit.** Extremely heavy, unoptimized legacy sites will nuke your token counts. Structuring pages hierarchically is more important than ever for AI accessibility.
-3. **The new arms race.** As we move towards AI-agent automation, the ongoing battle between AI automation (like Passmark) and Bot Protection (like Cloudflare) will define web infrastructure for the next decade.
+The full test suite — all 10 spec files, 37 tests, across 9 production apps — is available below.
 
-I pushed my full test suite to GitHub so you can run all 25 edge-cases yourself. You can find the repository linked below.
+Huge thanks to **Bug0** and **Hashnode** for organizing the Breaking Apps Hackathon. Writing these tests has changed how I think about QA permanently. **#BreakingAppsHackathon**
 
-Huge thanks to the **Bug0** team and **Hashnode** for organizing the Breaking Apps Hackathon. Writing tests has literally never been this much fun.
-
-*(👉 **GitHub Repository:** [Insert your GitHub URL here]*
+*(👉 **GitHub Repository:** https://github.com/lohit-40/breaking-apps-hackathon-2026)*

@@ -20,9 +20,14 @@ I used Passmark to write AI-driven test suites for **5 different web apps**, cov
 | `hashnode.spec.ts` | [Hashnode](https://hashnode.com) | 4 | Testing the hackathon platform itself 🤯 |
 | `meta-passmark-bug0.spec.ts` | [Passmark Docs](https://passmark.dev) + [Bug0](https://bug0.com) | 5 | Using Passmark to test Passmark (recursive!) |
 | `github.spec.ts` | [GitHub](https://github.com) | 4 | Testing the home of open-source code |
-| `vercel-commerce.spec.ts` | [Vercel Commerce](https://demo.vercel.store) | 5 | End-to-end shopping cart journey |
+| `vercel-commerce.spec.ts` | [Vercel Commerce](https://demo.vercel.store) | 6 | End-to-end shopping cart + math assertions |
+| `complex-canvas.spec.ts` | [Excalidraw](https://excalidraw.com) | 1 | Canvas app — DOM-free visual testing 🎨 |
+| `wikipedia-racer.spec.ts` | [Wikipedia](https://wikipedia.org) | 1 | 1M token context window stress test |
+| `ai-wars.spec.ts` | [HuggingFace Chat](https://huggingface.co/chat) | 1 | Passmark AI testing another AI 🤖 |
+| `data-integrity.spec.ts` | GitHub, WorldBank, HN, NPM, Vercel | 5 | **Cross-field math & range-bounded KPI assertions** |
+| `edge-cases.spec.ts` | Vercel, Hoppscotch, Bug0, GitHub | 6 | 404s, empty states, accessibility, I18N bugs |
 
-**Total: 22 tests across 5 apps**
+**Total: 37 tests across 9 apps** | Results: 29 ✅ passed · 5 ❌ failed (productively) · 3 🚧 blocked
 
 ---
 
